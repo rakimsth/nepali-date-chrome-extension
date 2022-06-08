@@ -30,8 +30,8 @@
     {
       "matches": ["<all_urls>"],
       "js": [
-        "/js/nepaliDatePicker.min.js",
         "/js/jquery-3.5.1.slim.min.js",
+        "/js/nepaliDatePicker.min.js",
         "/js/fontawesome.min.js"
       ]
     }
