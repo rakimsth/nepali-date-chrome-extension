@@ -1,0 +1,14 @@
+#iconImg {
+  display: block;
+  margin: auto;
+}
+
+#dialog-box {
+  text-align: center;
+  font-size: medium;
+  width: 300px;
+}
+
+.centerAlign {
+  text-align: center;
+}
