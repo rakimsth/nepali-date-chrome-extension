@@ -8,21 +8,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
   chrome.tabs.query(query, async (tabs) => {
     const today = getNepToday();
+    const metal = await getGoldPrice();
     const weather = await getWeather();
     const currentWeather = weather?.current?.condition || {
       icon: "",
       text: "-",
     };
     const weatherForecast = weather?.forecast?.forecastday || [];
-    dialogBox.innerHTML = getConvertedDate(
+    dialogBox.innerHTML = dataToHtml(
       today,
       currentWeather,
-      weatherForecast
+      weatherForecast,
+      metal
     );
   });
 });
 
-const getConvertedDate = (today, currentWeather, weatherForecast) => {
+const goldHtml = (gold) => {
+  return `
+  <hr>
+  <span style="color:#fff;background-color:#FFD700;font-size:0.9em;">
+  Gold: ${gold.gold}
+  </span>
+  <span style="color:#fff;background-color:#C0C0C0;font-size:0.9em;">
+  Silver: ${gold.silver}
+  </span>
+  <br>
+  <div style="font-size: 0.7em;text-align:right;">
+  <i>
+  Last Updated at: <strong>${gold.fetchDate}</strong> (location: Nepal)
+  </i>
+  </div>
+  <hr>
+  `;
+};
+
+const dataToHtml = (today, currentWeather, weatherForecast, metal) => {
   let forecast = "";
   forecast += weatherForecast.map((weather) => {
     return `<div class="cardWrapper">
@@ -48,6 +69,7 @@ const getConvertedDate = (today, currentWeather, weatherForecast) => {
     ${today.engDate}
   </span>
   <br>
+  ${goldHtml(metal)}
   <div id="wrapper">
   <div class="cardWrapper">
     <img src=https:${currentWeather?.icon || "Nop"} alt=${
@@ -68,6 +90,7 @@ const getConvertedDate = (today, currentWeather, weatherForecast) => {
     return `<span>
   <h1>${today.nepDate}</h1>
   ${today.engDate}
+  ${goldHtml(metal)}
 </span>
 <br>
 <div style="margin-top: 25px">
@@ -105,7 +128,7 @@ const fetchTimeout = (url, ms, { signal, ...options } = {}) => {
 };
 
 async function getWeather() {
-  const apiKey = "";
+  const apiKey = "363f2d913b494842ab6163856220806";
   const location = "Kathmandu";
   const response = await fetchTimeout(
     `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${location}&days=4&aqi=no&alerts=no`,
@@ -117,4 +140,34 @@ async function getWeather() {
   if (!response) return { location: "", current: "", forecast: "" };
   const weather = await response.json();
   return weather;
+}
+
+async function getGoldPrice() {
+  const response = await fetchTimeout(
+    `https://www.sharesansar.com/bullion`,
+    3000,
+    {
+      signal: controller.signal,
+    }
+  ).catch((error) => {
+    console.log(error);
+  });
+  if (!response) return { fetchDate: "", gold: "", silver: "" };
+  const metals = await response.text();
+  // Getting Gold Fetch Date
+  const fetchIndex = metals.search(/As of/gi);
+  const dateSearchIndex = fetchIndex + 29;
+  const additionalIndex = dateSearchIndex + 10;
+  const dateData = metals.substring(dateSearchIndex, additionalIndex);
+  // Getting Gold Price
+  const goldPriceIndex = metals.search(/<u>Fine Gold<\/u>/gi);
+  const searchIndex = goldPriceIndex + 114;
+  const additionalGPIndex = searchIndex + 14;
+  let goldPriceData = metals.substring(searchIndex, additionalGPIndex);
+  // Getting Silver Price
+  const silverPriceIndex = metals.search(/<u>Silver<\/u>/gi);
+  const searchSilverIndex = silverPriceIndex + 111;
+  const additionalSPIndex = searchSilverIndex + 13;
+  let silverPriceData = metals.substring(searchSilverIndex, additionalSPIndex);
+  return { fetchDate: dateData, gold: goldPriceData, silver: silverPriceData };
 }
