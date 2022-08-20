@@ -8,95 +8,126 @@ document.addEventListener("DOMContentLoaded", () => {
 
   chrome.tabs.query(query, async (tabs) => {
     const today = getNepToday();
-    const metal = await getGoldPrice();
-    const weather = await getWeather();
-    const currentWeather = weather?.current?.condition || {
-      icon: "",
-      text: "-",
-    };
-    const weatherForecast = weather?.forecast?.forecastday || [];
-    dialogBox.innerHTML = dataToHtml(
-      today,
-      currentWeather,
-      weatherForecast,
-      metal
-    );
+    dialogBox.innerHTML = dataToHtml(today);
+    setTimeout(async () => {
+      const metal = await getGoldPrice();
+      const weather = await getWeather();
+      const currentWeather = weather?.current?.condition || {
+        icon: "",
+        text: "-",
+      };
+      const weatherForecast = weather?.forecast?.forecastday || [];
+      dialogBox.innerHTML = dataToHtml(
+        today,
+        currentWeather,
+        weatherForecast,
+        metal
+      );
+    }, 1000);
   });
 });
 
-const goldHtml = (gold) => {
+const metalToHtml = (metal) => {
   return `
   <hr>
   <span style="color:#fff;background-color:#FFD700;font-size:0.9em;">
-  Gold: ${gold.gold}
+  Gold: ${metal.gold}
   </span>
   <span style="color:#fff;background-color:#C0C0C0;font-size:0.9em;">
-  Silver: ${gold.silver}
+  Silver: ${metal.silver}
   </span>
   <br>
   <div style="font-size: 0.7em;text-align:right;">
   <i>
-  Last Updated at: <strong>${gold.fetchDate}</strong> (location: Nepal)
+  Last Updated at: <strong>${metal.fetchDate}</strong> (location: Nepal)
   </i>
   </div>
   <hr>
   `;
 };
 
-const dataToHtml = (today, currentWeather, weatherForecast, metal) => {
-  let forecast = "";
-  forecast += weatherForecast.map((weather) => {
-    return `<div class="cardWrapper">
-    <img src=https:${weather?.day?.condition?.icon} alt=${
-      weather?.day?.condition?.text
-    } width=30 height=30/>
-    <div style="font-size: 0.7em"><em>${
-      weather?.day?.condition?.text
-    }</em></div>
-    <div class="stickAtBottom">
-    <strong>
-    ${days.find((day, i) => {
-      if (i === new Date(weather?.date).getDay()) return day;
-    })}
-      </strong>
-    </div>
-  </div>`;
-  });
-  forecast = forecast.replace(/,/g, "");
-  if (currentWeather.icon) {
-    return `<span>
+const todayToHtml = (today) => {
+  return `
+  <span>
     <h1>${today.nepDate}</h1>
     ${today.engDate}
   </span>
-  <br>
-  ${goldHtml(metal)}
-  <div id="wrapper">
-  <div class="cardWrapper">
-    <img src=https:${currentWeather?.icon || "Nop"} alt=${
-      currentWeather.text
+  <br>`;
+};
+
+const weatherToHtml = ({ currentWeather, weatherForecast }) => {
+  let forecast = "";
+  forecast += weatherForecast.map((weather) => {
+    return `
+    <div class="cardWrapper">
+      <img src=https:${weather?.day?.condition?.icon} alt=${
+      weather?.day?.condition?.text
     } width=30 height=30/>
-    <div style="font-size: 0.7em"><em>${currentWeather.text}</em></div>
-    <div class="stickAtBottom">
-    <strong>
-      ${days.find((day, i) => {
-        if (i === new Date().getDay()) return day;
-      })}
-      </strong>
-    </div>
-  </div>
-  ${forecast}
+      <div style="font-size: 0.7em">
+        <em>${weather?.day?.condition?.text}</em>
+      </div>
+      <div class="stickAtBottom">
+        <strong>
+        ${days.find((day, i) => {
+          if (i === new Date(weather?.date).getDay()) return day;
+        })}
+        </strong>
+      </div>
+    </div>`;
+  });
+  forecast = forecast.replace(/,/g, "");
+  if (currentWeather.icon) {
+    return `
+    <div id="wrapper">
+      <div class="cardWrapper">
+        <img src=https:${currentWeather?.icon || "Nope"} alt=${
+      currentWeather.text
+    } width=30 height=30 />
+        <div style="font-size: 0.7em">
+          <em>${currentWeather.text}</em>
+        </div>
+        <div class="stickAtBottom">
+          <strong>
+            ${days.find((day, i) => {
+              if (i === new Date().getDay()) return day;
+            })}
+          </strong>
+        </div>
+      </div>
+    ${forecast}
+    </div>`;
+  } else {
+    return `<div style="margin-top: 25px">
+    <span><em>Weather Data Not Found!</em></span>
   </div>`;
-  } else
-    return `<span>
-  <h1>${today.nepDate}</h1>
-  ${today.engDate}
-  ${goldHtml(metal)}
-</span>
-<br>
-<div style="margin-top: 25px">
-<span><em>Weather Data Not Found!</em></span>
-</div>
-`;
+  }
+};
+
+const dataToHtml = (today, currentWeather, weatherForecast, metal) => {
+  let toPrint = "";
+  if (today) {
+    const todayData = todayToHtml(today);
+    toPrint += todayData;
+  }
+  if (metal) {
+    const metalData = metalToHtml(metal);
+    toPrint += metalData;
+  } else {
+    toPrint += `
+      <div style="margin-top: 25px">
+        <span><em>Gold Data Not Found!</em></span>
+      </div>`;
+  }
+  if (currentWeather && weatherForecast) {
+    const weatherData = weatherToHtml({ currentWeather, weatherForecast });
+    toPrint += weatherData;
+  } else {
+    toPrint += `
+        <div style="margin-top: 25px">
+          <span><em>Weather Data Not Found!</em></span>
+        </div>`;
+  }
+  return toPrint;
 };
 
 const getNepToday = () => {
@@ -137,7 +168,7 @@ async function getWeather() {
   ).catch((error) => {
     console.log(error);
   });
-  if (!response) return { location: "", current: "", forecast: "" };
+  if (!response) return { location: "-", current: "-", forecast: "-" };
   const weather = await response.json();
   return weather;
 }
@@ -152,7 +183,7 @@ async function getGoldPrice() {
   ).catch((error) => {
     console.log(error);
   });
-  if (!response) return { fetchDate: "", gold: "", silver: "" };
+  if (!response) return { fetchDate: "-", gold: "-", silver: "-" };
   const metals = await response.text();
   // Getting Gold Fetch Date
   const fetchIndex = metals.search(/As of/gi);
