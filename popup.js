@@ -115,7 +115,7 @@ const dataToHtml = (today, currentWeather, weatherForecast, metal) => {
   } else {
     toPrint += `
       <div style="margin-top: 25px">
-        <span><em>Gold Data Not Found!</em></span>
+        <span><em>loading gold data...</em></span>
       </div>`;
   }
   if (currentWeather && weatherForecast) {
@@ -124,7 +124,7 @@ const dataToHtml = (today, currentWeather, weatherForecast, metal) => {
   } else {
     toPrint += `
         <div style="margin-top: 25px">
-          <span><em>Weather Data Not Found!</em></span>
+        <span><em>loading weather data...</em></span>
         </div>`;
   }
   return toPrint;
